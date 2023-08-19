@@ -1,0 +1,171 @@
+{
+    "os": "Linux-4.19.0-25-amd64-x86_64-with-debian-10.13",
+    "python": "3.7.12",
+    "heartbeatAt": "2023-08-18T17:40:07.434639",
+    "startedAt": "2023-08-18T17:40:06.524302",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "configs/kitti_360/spvcnn/cr0p5.yaml"
+    ],
+    "state": "running",
+    "program": "train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "https://github.com/mit-han-lab/spvnas.git",
+        "commit": "08570cf687622c4d5a5cfa2d7d5f3dcb629222d1"
+    },
+    "email": "wboettcher@ethz.ch",
+    "root": "/scratch_net/biwidl303/wboet/spvnas",
+    "host": "biwirender13",
+    "username": "wboettcher",
+    "executable": "/itet-stor/wboettcher/net_scratch/conda_envs/spvnas_env/bin/python",
+    "cpu_count": 24,
+    "cpu_count_logical": 24,
+    "cpu_freq": {
+        "current": 1459.5245416666667,
+        "min": 1200.0,
+        "max": 3300.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 1499.939,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1564.797,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2454.219,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.29,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1199.918,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1400.67,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.164,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.588,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.489,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.176,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.444,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.438,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1877.858,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1700.489,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1780.544,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1231.435,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1700.055,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1466.529,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.238,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1839.533,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.4,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1400.694,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1301.209,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.251,
+            "min": 1200.0,
+            "max": 3300.0
+        }
+    ],
+    "disk": {
+        "total": 36.367408752441406,
+        "used": 12.659259796142578
+    },
+    "gpu": "NVIDIA TITAN Xp",
+    "gpu_count": 2,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA TITAN Xp",
+            "memory_total": 12788498432
+        },
+        {
+            "name": "NVIDIA TITAN Xp COLLECTORS EDITION",
+            "memory_total": 12788498432
+        }
+    ],
+    "memory": {
+        "total": 503.794979095459
+    }
+}

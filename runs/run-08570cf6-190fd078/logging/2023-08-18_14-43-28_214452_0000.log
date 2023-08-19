@@ -1,0 +1,192 @@
+2023-08-18 14:43:35.845 | __main__:main:51 | INFO | /itet-stor/wboettcher/net_scratch/conda_envs/spvnas_env/bin/python train.py configs/kitti_360/spvcnn/cr0p5.yaml
+2023-08-18 14:43:35.846 | __main__:main:52 | INFO | Experiment started: "runs/run-08570cf6-190fd078".
+workers_per_gpu: 8
+distributed: True
+amp_enabled: True
+data:
+  num_classes: 15
+  ignore_label: 255
+  training_size: 48095
+train:
+  seed: 1588147245
+  deterministic: False
+dataset:
+  name: kitti_360
+  root: /scratch_net/biwidl303/wboet/datasets/KITTI360/
+  num_points: 80000
+  voxel_size: 0.05
+  radius: 60
+num_epochs: 15
+batch_size: 2
+criterion:
+  name: cross_entropy
+  ignore_index: 255
+optimizer:
+  name: sgd
+  lr: 0.12
+  weight_decay: 0.0001
+  momentum: 0.9
+  nesterov: True
+scheduler:
+  name: cosine_warmup
+model:
+  name: spvcnn
+  input_feat: 6
+  cr: 0.5
+2023-08-18 14:44:21.598 | torchpack.train.trainer:train:70 | INFO | Epoch 1/15 started.
+2023-08-18 15:45:42.337 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 20 seconds.
+2023-08-18 15:58:00.014 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 17 seconds.
+2023-08-18 15:58:00.644 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (53.415).
+2023-08-18 15:58:01.310 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-12024.pt".
+2023-08-18 15:58:01.317 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 53.415
++ [iou/test/max] = 53.415
++ [loss] = 0.19642
+2023-08-18 15:58:01.318 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 17 hours 11 minutes 16 seconds.
+2023-08-18 15:58:01.318 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 39 seconds.
+2023-08-18 15:58:01.318 | torchpack.train.trainer:train:70 | INFO | Epoch 2/15 started.
+2023-08-18 16:59:18.918 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 17 seconds.
+2023-08-18 17:11:39.755 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 20 seconds.
+2023-08-18 17:11:40.333 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-24048.pt".
+2023-08-18 17:11:40.341 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 51.62
++ [iou/test/max] = 53.415
++ [loss] = 0.16441
+2023-08-18 17:11:40.342 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 15 hours 57 minutes 31 seconds.
+2023-08-18 17:11:40.343 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 39 seconds.
+2023-08-18 17:11:40.344 | torchpack.train.trainer:train:70 | INFO | Epoch 3/15 started.
+2023-08-18 18:13:02.953 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 22 seconds.
+2023-08-18 18:25:21.605 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 18 seconds.
+2023-08-18 18:25:22.188 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (54.734).
+2023-08-18 18:25:22.819 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-36072.pt".
+2023-08-18 18:25:22.827 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 54.734
++ [iou/test/max] = 54.734
++ [loss] = 0.17836
+2023-08-18 18:25:22.839 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 14 hours 44 minutes 4 seconds.
+2023-08-18 18:25:22.840 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 42 seconds.
+2023-08-18 18:25:22.841 | torchpack.train.trainer:train:70 | INFO | Epoch 4/15 started.
+2023-08-18 19:26:43.183 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 20 seconds.
+2023-08-18 19:39:02.680 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 19 seconds.
+2023-08-18 19:39:03.268 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-48096.pt".
+2023-08-18 19:39:03.280 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 52.175
++ [iou/test/max] = 54.734
++ [loss] = 0.15761
+2023-08-18 19:39:03.282 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 13 hours 30 minutes 24 seconds.
+2023-08-18 19:39:03.283 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 40 seconds.
+2023-08-18 19:39:03.283 | torchpack.train.trainer:train:70 | INFO | Epoch 5/15 started.
+2023-08-18 20:40:25.295 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 22 seconds.
+2023-08-18 20:52:46.124 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 20 seconds.
+2023-08-18 20:52:46.693 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-60120.pt".
+2023-08-18 20:52:46.704 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 54.479
++ [iou/test/max] = 54.734
++ [loss] = 0.1861
+2023-08-18 20:52:46.706 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 12 hours 16 minutes 50 seconds.
+2023-08-18 20:52:46.707 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 43 seconds.
+2023-08-18 20:52:46.708 | torchpack.train.trainer:train:70 | INFO | Epoch 6/15 started.
+2023-08-18 21:54:08.958 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 22 seconds.
+2023-08-18 22:06:26.593 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 17 seconds.
+2023-08-18 22:06:27.177 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (55.687).
+2023-08-18 22:06:27.888 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-72144.pt".
+2023-08-18 22:06:27.898 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 55.687
++ [iou/test/max] = 55.687
++ [loss] = 0.13247
+2023-08-18 22:06:27.900 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 11 hours 3 minutes 9 seconds.
+2023-08-18 22:06:27.901 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 41 seconds.
+2023-08-18 22:06:27.901 | torchpack.train.trainer:train:70 | INFO | Epoch 7/15 started.
+2023-08-18 23:07:46.570 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 18 seconds.
+2023-08-18 23:20:05.748 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 19 seconds.
+2023-08-18 23:20:06.317 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-84168.pt".
+2023-08-18 23:20:06.326 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 54.749
++ [iou/test/max] = 55.687
++ [loss] = 0.093482
+2023-08-18 23:20:06.328 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 9 hours 49 minutes 25 seconds.
+2023-08-18 23:20:06.329 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 38 seconds.
+2023-08-18 23:20:06.329 | torchpack.train.trainer:train:70 | INFO | Epoch 8/15 started.
+2023-08-19 00:21:31.952 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 25 seconds.
+2023-08-19 00:33:48.907 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 16 seconds.
+2023-08-19 00:33:49.489 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (55.754).
+2023-08-19 00:33:50.223 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-96192.pt".
+2023-08-19 00:33:50.231 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 55.754
++ [iou/test/max] = 55.754
++ [loss] = 0.1126
+2023-08-19 00:33:50.233 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 8 hours 35 minutes 47 seconds.
+2023-08-19 00:33:50.233 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 43 seconds.
+2023-08-19 00:33:50.234 | torchpack.train.trainer:train:70 | INFO | Epoch 9/15 started.
+2023-08-19 01:35:11.738 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 21 seconds.
+2023-08-19 01:47:32.765 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 21 seconds.
+2023-08-19 01:47:33.343 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-108216.pt".
+2023-08-19 01:47:33.365 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 53.71
++ [iou/test/max] = 55.754
++ [loss] = 0.1125
+2023-08-19 01:47:33.368 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 7 hours 22 minutes 9 seconds.
+2023-08-19 01:47:33.369 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 43 seconds.
+2023-08-19 01:47:33.369 | torchpack.train.trainer:train:70 | INFO | Epoch 10/15 started.
+2023-08-19 02:48:58.333 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 24 seconds.
+2023-08-19 03:01:18.497 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 20 seconds.
+2023-08-19 03:01:19.088 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-120240.pt".
+2023-08-19 03:01:19.111 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 55.422
++ [iou/test/max] = 55.754
++ [loss] = 0.11035
+2023-08-19 03:01:19.113 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 6 hours 8 minutes 31 seconds.
+2023-08-19 03:01:19.114 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 45 seconds.
+2023-08-19 03:01:19.115 | torchpack.train.trainer:train:70 | INFO | Epoch 11/15 started.
+2023-08-19 04:02:36.253 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 17 seconds.
+2023-08-19 04:14:48.724 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 12 seconds.
+2023-08-19 04:14:49.296 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (56.439).
+2023-08-19 04:14:50.010 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-132264.pt".
+2023-08-19 04:14:50.032 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 56.439
++ [iou/test/max] = 56.439
++ [loss] = 0.10067
+2023-08-19 04:14:50.034 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 4 hours 54 minutes 43 seconds.
+2023-08-19 04:14:50.035 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 30 seconds.
+2023-08-19 04:14:50.036 | torchpack.train.trainer:train:70 | INFO | Epoch 12/15 started.
+2023-08-19 05:16:05.895 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 15 seconds.
+2023-08-19 05:28:18.621 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 12 seconds.
+2023-08-19 05:28:19.194 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (56.849).
+2023-08-19 05:28:19.864 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-144288.pt".
+2023-08-19 05:28:19.887 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 56.849
++ [iou/test/max] = 56.849
++ [loss] = 0.091574
+2023-08-19 05:28:19.889 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 3 hours 40 minutes 58 seconds.
+2023-08-19 05:28:19.891 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 29 seconds.
+2023-08-19 05:28:19.892 | torchpack.train.trainer:train:70 | INFO | Epoch 13/15 started.
+2023-08-19 06:29:35.467 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 15 seconds.
+2023-08-19 06:41:47.064 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 11 seconds.
+2023-08-19 06:41:47.646 | torchpack.callbacks.checkpoint:_trigger:111 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/max-iou-test.pt" (57.205).
+2023-08-19 06:41:48.328 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-156312.pt".
+2023-08-19 06:41:48.350 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 57.205
++ [iou/test/max] = 57.205
++ [loss] = 0.065446
+2023-08-19 06:41:48.352 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 2 hours 27 minutes 15 seconds.
+2023-08-19 06:41:48.353 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 28 seconds.
+2023-08-19 06:41:48.353 | torchpack.train.trainer:train:70 | INFO | Epoch 14/15 started.
+2023-08-19 07:43:16.864 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 28 seconds.
+2023-08-19 07:55:32.068 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 15 seconds.
+2023-08-19 07:55:32.645 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-168336.pt".
+2023-08-19 07:55:32.657 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 56.849
++ [iou/test/max] = 57.205
++ [loss] = 0.097201
+2023-08-19 07:55:32.658 | torchpack.callbacks.progress:_trigger_epoch:64 | INFO | Estimated time left: 1 hour 13 minutes 38 seconds.
+2023-08-19 07:55:32.659 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 44 seconds.
+2023-08-19 07:55:32.660 | torchpack.train.trainer:train:70 | INFO | Epoch 15/15 started.
+2023-08-19 08:56:59.211 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 26 seconds.
+2023-08-19 09:09:13.851 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 14 seconds.
+2023-08-19 09:09:14.424 | torchpack.callbacks.checkpoint:_trigger:47 | INFO | Checkpoint saved: "runs/run-08570cf6-190fd078/checkpoints/step-180360.pt".
+2023-08-19 09:09:14.444 | torchpack.callbacks.writers:_trigger:60 | INFO | 
++ [iou/test] = 57.185
++ [iou/test/max] = 57.205
++ [loss] = 0.096871
+2023-08-19 09:09:14.446 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 41 seconds.
+2023-08-19 09:09:14.446 | torchpack.train.trainer:train:94 | SUCCESS | 15 epochs of training finished in 18 hours 24 minutes 54 seconds.

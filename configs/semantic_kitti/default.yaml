@@ -9,12 +9,12 @@ train:
 
 dataset:
   name: semantic_kitti
-  root: /dataset/semantic-kitti
+  root: ../datasets/ScribbleKITTI/dataset/sequences
   num_points: 80000
   voxel_size: 0.05
 
 num_epochs: 15
-batch_size: 2
+batch_size: 4
 
 criterion:
   name: cross_entropy

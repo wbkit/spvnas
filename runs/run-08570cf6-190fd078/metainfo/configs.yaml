@@ -1,0 +1,33 @@
+amp_enabled: true
+batch_size: 2
+criterion:
+  ignore_index: 255
+  name: cross_entropy
+data:
+  ignore_label: 255
+  num_classes: 15
+  training_size: 48095
+dataset:
+  name: kitti_360
+  num_points: 80000
+  radius: 60
+  root: /scratch_net/biwidl303/wboet/datasets/KITTI360/
+  voxel_size: 0.05
+distributed: true
+model:
+  cr: 0.5
+  input_feat: 6
+  name: spvcnn
+num_epochs: 15
+optimizer:
+  lr: 0.12
+  momentum: 0.9
+  name: sgd
+  nesterov: true
+  weight_decay: 0.0001
+scheduler:
+  name: cosine_warmup
+train:
+  deterministic: false
+  seed: 1588147245
+workers_per_gpu: 8

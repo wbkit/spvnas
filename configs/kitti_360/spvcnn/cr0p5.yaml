@@ -1,0 +1,5 @@
+model:
+  name: spvcnn
+  cr: 0.5
+  input_feat: 6
+  

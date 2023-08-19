@@ -1,0 +1,72 @@
+2023-08-18 02:37:41.094 | __main__:main:51 | INFO | /itet-stor/wboettcher/net_scratch/conda_envs/spvnas_env/bin/python train.py configs/kitti_360/spvcnn/cr0p5.yaml
+2023-08-18 02:37:41.096 | __main__:main:52 | INFO | Experiment started: "runs/run-08570cf6-190fd078".
+workers_per_gpu: 8
+distributed: True
+amp_enabled: True
+data:
+  num_classes: 15
+  ignore_label: 255
+  training_size: 48095
+train:
+  seed: 1588147245
+  deterministic: False
+dataset:
+  name: kitti_360
+  root: /scratch_net/biwidl303/wboet/datasets/KITTI360/
+  num_points: 80000
+  voxel_size: 0.05
+  radius: 60
+num_epochs: 15
+batch_size: 2
+criterion:
+  name: cross_entropy
+  ignore_index: 255
+optimizer:
+  name: sgd
+  lr: 0.12
+  weight_decay: 0.0001
+  momentum: 0.9
+  nesterov: True
+scheduler:
+  name: cosine_warmup
+model:
+  name: spvcnn
+  input_feat: 6
+  cr: 0.5
+2023-08-18 02:38:54.122 | torchpack.train.trainer:train:70 | INFO | Epoch 1/15 started.
+2023-08-18 03:41:37.995 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 2 minutes 43 seconds.
+2023-08-18 03:53:54.099 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 16 seconds.
+2023-08-18 03:53:54.100 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 14 minutes 59 seconds.
+2023-08-18 03:53:54.101 | torchpack.train.trainer:train:70 | INFO | Epoch 2/15 started.
+2023-08-18 04:55:05.559 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 11 seconds.
+2023-08-18 05:07:19.405 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 13 seconds.
+2023-08-18 05:07:19.406 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 25 seconds.
+2023-08-18 05:07:19.407 | torchpack.train.trainer:train:70 | INFO | Epoch 3/15 started.
+2023-08-18 06:08:30.100 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 10 seconds.
+2023-08-18 06:20:46.683 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 16 seconds.
+2023-08-18 06:20:46.684 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 27 seconds.
+2023-08-18 06:20:46.684 | torchpack.train.trainer:train:70 | INFO | Epoch 4/15 started.
+2023-08-18 07:21:56.411 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 9 seconds.
+2023-08-18 07:34:13.419 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 17 seconds.
+2023-08-18 07:34:13.420 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 26 seconds.
+2023-08-18 07:34:13.420 | torchpack.train.trainer:train:70 | INFO | Epoch 5/15 started.
+2023-08-18 08:35:27.229 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 13 seconds.
+2023-08-18 08:47:41.777 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 14 seconds.
+2023-08-18 08:47:41.778 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 28 seconds.
+2023-08-18 08:47:41.778 | torchpack.train.trainer:train:70 | INFO | Epoch 6/15 started.
+2023-08-18 09:48:55.750 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 13 seconds.
+2023-08-18 10:01:11.578 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 15 seconds.
+2023-08-18 10:01:11.579 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 29 seconds.
+2023-08-18 10:01:11.579 | torchpack.train.trainer:train:70 | INFO | Epoch 7/15 started.
+2023-08-18 11:02:26.878 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 15 seconds.
+2023-08-18 11:14:41.401 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 14 seconds.
+2023-08-18 11:14:41.402 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 29 seconds.
+2023-08-18 11:14:41.402 | torchpack.train.trainer:train:70 | INFO | Epoch 8/15 started.
+2023-08-18 12:15:54.125 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 12 seconds.
+2023-08-18 12:28:09.488 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 15 seconds.
+2023-08-18 12:28:09.489 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 28 seconds.
+2023-08-18 12:28:09.490 | torchpack.train.trainer:train:70 | INFO | Epoch 9/15 started.
+2023-08-18 13:29:15.073 | torchpack.train.trainer:train:86 | INFO | Training finished in 1 hour 1 minute 5 seconds.
+2023-08-18 13:41:29.161 | torchpack.callbacks.inference:_trigger:43 | INFO | Inference finished in 12 minutes 14 seconds.
+2023-08-18 13:41:29.162 | torchpack.train.trainer:train:90 | INFO | Epoch finished in 1 hour 13 minutes 19 seconds.
+2023-08-18 13:41:29.163 | torchpack.train.trainer:train:70 | INFO | Epoch 10/15 started.

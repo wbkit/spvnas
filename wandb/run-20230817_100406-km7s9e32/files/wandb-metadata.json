@@ -1,0 +1,191 @@
+{
+    "os": "Linux-4.19.0-25-amd64-x86_64-with-debian-10.13",
+    "python": "3.7.12",
+    "heartbeatAt": "2023-08-17T08:04:06.687782",
+    "startedAt": "2023-08-17T08:04:06.002301",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "configs/kitti_360/spvcnn/cr0p5.yaml"
+    ],
+    "state": "running",
+    "program": "train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "https://github.com/mit-han-lab/spvnas.git",
+        "commit": "08570cf687622c4d5a5cfa2d7d5f3dcb629222d1"
+    },
+    "email": "wboettcher@ethz.ch",
+    "root": "/scratch_net/biwidl303/wboet/spvnas",
+    "host": "biwirender14",
+    "username": "wboettcher",
+    "executable": "/itet-stor/wboettcher/net_scratch/conda_envs/spvnas_env/bin/python",
+    "cpu_count": 28,
+    "cpu_count_logical": 28,
+    "cpu_freq": {
+        "current": 1423.421642857143,
+        "min": 1200.0,
+        "max": 3300.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2249.844,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2065.989,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.003,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2968.515,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.243,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1461.576,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.111,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.291,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.44,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2161.683,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1305.364,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1428.152,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1316.265,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 2093.335,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.225,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.313,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.054,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.066,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.13,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.406,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.64,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.293,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1199.995,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.421,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.471,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.458,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.393,
+            "min": 1200.0,
+            "max": 3300.0
+        },
+        {
+            "current": 1200.13,
+            "min": 1200.0,
+            "max": 3300.0
+        }
+    ],
+    "disk": {
+        "total": 36.492637634277344,
+        "used": 8.703651428222656
+    },
+    "gpu": "NVIDIA TITAN Xp",
+    "gpu_count": 2,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA TITAN Xp",
+            "memory_total": 12788498432
+        },
+        {
+            "name": "NVIDIA TITAN Xp COLLECTORS EDITION",
+            "memory_total": 12788498432
+        }
+    ],
+    "memory": {
+        "total": 503.79433822631836
+    }
+}

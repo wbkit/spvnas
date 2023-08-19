@@ -1,0 +1,83 @@
+wandb_version: 1
+
+workers_per_gpu:
+  desc: null
+  value: 8
+distributed:
+  desc: null
+  value: true
+amp_enabled:
+  desc: null
+  value: true
+data:
+  desc: null
+  value:
+    num_classes: 15
+    ignore_label: 255
+    training_size: 48095
+train:
+  desc: null
+  value:
+    seed: 1588147245
+    deterministic: false
+dataset:
+  desc: null
+  value:
+    name: kitti_360
+    root: /scratch_net/biwidl303/wboet/datasets/KITTI360/
+    num_points: 80000
+    voxel_size: 0.05
+    radius: 20
+num_epochs:
+  desc: null
+  value: 15
+batch_size:
+  desc: null
+  value: 2
+criterion:
+  desc: null
+  value:
+    name: cross_entropy
+    ignore_index: 255
+optimizer:
+  desc: null
+  value:
+    name: sgd
+    lr: 0.12
+    weight_decay: 0.0001
+    momentum: 0.9
+    nesterov: true
+scheduler:
+  desc: null
+  value:
+    name: cosine_warmup
+model:
+  desc: null
+  value:
+    name: spvcnn
+    input_feat: 6
+    cr: 0.5
+_wandb:
+  desc: null
+  value:
+    python_version: 3.7.12
+    cli_version: 0.15.8
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1692299554.226772
+    t:
+      1:
+      - 1
+      - 55
+      2:
+      - 1
+      - 55
+      3:
+      - 13
+      - 16
+      - 23
+      4: 3.7.12
+      5: 0.15.8
+      8:
+      - 5

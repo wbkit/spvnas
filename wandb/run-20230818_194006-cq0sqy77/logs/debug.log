@@ -24,3 +24,4 @@ config: {'workers_per_gpu': 8, 'distributed': True, 'amp_enabled': True, 'data':
 2023-08-18 19:40:23,154 INFO    MainThread:9427 [wandb_run.py:_redirect():2079] Wrapping output streams.
 2023-08-18 19:40:23,154 INFO    MainThread:9427 [wandb_run.py:_redirect():2104] Redirects installed.
 2023-08-18 19:40:23,155 INFO    MainThread:9427 [wandb_init.py:init():822] run started, returning control to user process
+2023-08-19 21:11:10,347 WARNING MsgRouterThr:9427 [router.py:message_loop():77] message_loop has been closed

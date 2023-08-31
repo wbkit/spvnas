@@ -1,3 +1,5 @@
+""" KITTI-360 dataset class. Uses the npz files """
+
 import os
 import os.path
 import re
@@ -197,7 +199,7 @@ class KITTI360Internal:
         idx_info = self.frame_list[idx]
         point_file = idx_info["lidar_path"]
         # Load the point cloud
-        pt_cloud, label, visible = self.read_kitti_360_ply(point_file)
+        pt_cloud, label, visible = self.read_kitti_360_npz(point_file)
 
         # Only show visible points
         pt_cloud = pt_cloud[visible == 1]
@@ -236,11 +238,25 @@ class KITTI360Internal:
 
         ######################################
         # Color drop experiment
-        if self.split == "train":
-            inds = np.linspace(0, self.num_points - 1, self.num_points, dtype=int)
-            inds = np.random.choice(inds, int(self.num_points * 0.2), replace=False)
-            pt_cloud[inds, 3:6] = 0
+        # if self.split == "train":
+        #     if np.random.rand() < 0.2:
+        #         pt_cloud[:, 3] = 0
+        #     if np.random.rand() < 0.2:
+        #         pt_cloud[:, 4] = 0
+        #     if np.random.rand() < 0.2:
+        #         pt_cloud[:, 5] = 0
 
+        # Color normalizer experiment
+        # if self.split == "train":
+        #     if np.random.rand() < 0.2:
+        #         lo = np.min(pt_cloud[:, 3:6], 0, keepdims=True)
+        #         hi = np.max(pt_cloud[:, 3:6], 0, keepdims=True)
+        #         scale = 255 / (hi - lo)
+        #         contrast_feat = (pt_cloud[:, 3:6] - lo) * scale
+        #         blend_factor = np.random.rand() / 2
+        #         pt_cloud[:, 3:6] = (1 - blend_factor) * pt_cloud[
+        #             :, 3:6
+        #         ] + blend_factor * contrast_feat
         #######################################
 
         ####################
@@ -262,8 +278,6 @@ class KITTI360Internal:
             )
             pt_cloud[:, :3] = np.dot(pt_cloud[:, :3], transform_mat)
 
-        # TODO set correct features, for debugging use only zRGB
-        # later use either depth RGB or xyzRGB
         pc_ = np.round(pt_cloud[:, :3] / self.voxel_size).astype(np.int32)
         pc_ -= pc_.min(0, keepdims=1)
         feat_ = pt_cloud[:, 0:6]  # xyzRGB as features
@@ -329,6 +343,13 @@ class KITTI360Internal:
 
         return data, label, visible
 
+    def read_kitti_360_npz(self, filepath):
+        # Replace the file extension
+        filepath = filepath.replace(".ply", ".npz")
+        data = np.load(filepath)
+        return data["pt_cloud"], data["label"], data["visible"]
+
     @staticmethod
     def collate_fn(inputs):
-        return sparse_collate_fn(inputs)
+        batch = sparse_collate_fn(inputs)
+        return batch

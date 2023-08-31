@@ -1,0 +1,5 @@
+model:
+  name: minkunet
+  cr: 1.0
+  input_feat: 6
+  

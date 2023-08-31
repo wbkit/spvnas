@@ -2,3 +2,6 @@
 .torch/
 */__pycache__/
 *.pyc
+runs/
+wandb/
+```

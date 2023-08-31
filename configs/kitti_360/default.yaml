@@ -12,9 +12,9 @@ dataset:
   root: /scratch_net/biwidl303/wboet/datasets/KITTI360/
   num_points: 80000
   voxel_size: 0.05
-  radius: 60
+  radius: 50
 
-num_epochs: 15
+num_epochs: 20
 batch_size: 2
 
 criterion:
@@ -23,7 +23,7 @@ criterion:
 
 optimizer:
   name: sgd
-  lr: 1.2e-1
+  lr: 2.4e-1
   weight_decay: 1.0e-4
   momentum: 0.9
   nesterov: true

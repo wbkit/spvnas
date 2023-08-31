@@ -9,7 +9,7 @@ import torch.cuda
 import torch.nn
 import torch.utils.data
 from torchpack import distributed as dist
-from torchpack.callbacks import InferenceRunner, MaxSaver, Saver
+from torchpack.callbacks import InferenceRunner, MaxSaver, Saver, SaverRestore
 from torchpack.environ import auto_set_run_dir, set_run_dir
 from torchpack.utils.config import configs
 from torchpack.utils.logging import logger

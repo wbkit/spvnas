@@ -347,7 +347,10 @@ class KITTI360Internal:
         # Replace the file extension
         filepath = filepath.replace(".ply", ".npz")
         data = np.load(filepath)
-        return data["pt_cloud"], data["label"], data["visible"]
+        if self.split == "train":
+            return data["pt_cloud"], data["label_sparse"], data["visible"]
+        else:
+            return data["pt_cloud"], data["label"], data["visible"]
 
     @staticmethod
     def collate_fn(inputs):

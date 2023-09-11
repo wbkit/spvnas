@@ -14,7 +14,7 @@ dataset:
   voxel_size: 0.05
   radius: 50
 
-num_epochs: 20
+num_epochs: 25
 batch_size: 2
 
 criterion:

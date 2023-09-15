@@ -6,6 +6,8 @@ from torch import nn
 from torchpack.utils.config import configs
 from torchpack.utils.typing import Dataset, Optimizer, Scheduler
 
+from core.consistency_loss import PartialConsistencyLoss
+
 __all__ = ["make_dataset", "make_model", "make_criterion", "make_optimizer", "make_scheduler"]
 
 
@@ -70,7 +72,10 @@ def make_model() -> nn.Module:
 
 def make_criterion() -> Callable:
     if configs.criterion.name == "cross_entropy":
-        criterion = nn.CrossEntropyLoss(ignore_index=configs.criterion.ignore_index)
+        # criterion = nn.CrossEntropyLoss(ignore_index=configs.criterion.ignore_index)
+        criterion = PartialConsistencyLoss(
+            nn.CrossEntropyLoss, ignore_index=configs.criterion.ignore_index
+        )
     else:
         raise NotImplementedError(configs.criterion.name)
     return criterion

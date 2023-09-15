@@ -5,14 +5,23 @@ import os.path
 import re
 import copy
 
+from PIL import Image
 from plyfile import PlyData
+from torchvision.transforms import (
+    ColorJitter,
+    RandomCrop,
+    RandomHorizontalFlip,
+    GaussianBlur,
+    AugMix,
+)
 import numpy as np
+from core.datasets.helpers.project import CameraPerspective
 import torch
 from torchsparse import SparseTensor
 from torchsparse.utils.collate import sparse_collate_fn
 from torchsparse.utils.quantize import sparse_quantize
 from core.datasets.helpers.project import CameraPerspective
-from core.datasets.helpers.annotation import Annotation3DPly
+from core.datasets.helpers.annotation import Annotation3DPly, Annotation2D
 from core.datasets.helpers.labels import (
     ID2TRAINID,
     KITTI360_NUM_CLASSES,
@@ -62,7 +71,7 @@ class KITTI360(dict):
             )
 
 
-class KITTI360ema:
+class KITTI360ema(KITTI360Internal):
     def __init__(
         self,
         root,
@@ -72,30 +81,38 @@ class KITTI360ema:
         split,
         sample_stride=1,
     ):
-        aug_student = ["rotate", "flip", "scale", "noise"]
-        aug_teacher = ["rotate", "flip"]
-
-        self.student = KITTI360Internal(
-            root, voxel_size, num_points, radius, split, sample_stride, aug_student
+        super().__init__(
+            root,
+            split,
+            "lidar",
+            voxel_size,
+            num_points,
+            radius,
+            sample_stride=sample_stride,
+            augmentations_3d=["rotate", "flip"],
         )
-        self.teacher = copy.copy(self.student)
-        self.teacher.augmentations = aug_teacher
+        self.aug_student = ["rotate", "flip", "scale", "noise"]
+        self.aug_teacher = ["rotate", "flip"]
 
     def __getitem__(self, idx):
         # Set the seed for numpy for both objects
         seed = np.random.randint(0, 2**32 - 1)
-        self.student.seed = seed
-        self.teacher.seed = seed
+        self.seed = seed
 
-        student = self.student[idx]
-        teacher = self.teacher[idx]
+        # Get the student and teacher data
+        pt_cloud, labels = self.__getitem_3d(idx)
+        pt_cloud_student = self.augment_3d(pt_cloud, self.aug_student)
+        pt_cloud_teacher = self.augment_3d(pt_cloud, self.aug_teacher)
 
-        output = student
-        output["lidar_teacher"] = teacher["lidar"]
-        output["targets_teacher"] = teacher["targets"]
-        output["inverse_map_teacher"] = teacher["inverse_map"]
-        output["forward_map_teacher"] = teacher["forward_map"]
-        return output
+        dict_student = self.voxelise_sparsify_3d(idx, pt_cloud_student, labels)
+        dict_teacher = self.voxelise_sparsify_3d(idx, pt_cloud_teacher, labels)
+
+        # Add the teacher data to the student data and put the respective name in front of all keys
+        for key in dict_teacher.keys():
+            dict_student["student_" + key] = dict_student.pop(key)
+            dict_student["teacher_" + key] = dict_teacher[key]
+
+        return dict_student
 
     def __len__(self):
         return len(self.student)
@@ -110,30 +127,45 @@ class KITTI360Internal:
     def __init__(
         self,
         root,
-        voxel_size,
-        num_points,
-        radius,
         split,
+        modality,
+        voxel_size=None,
+        num_points=None,
+        radius=None,
+        feature_extractor=None,
         sample_stride=1,
-        augmentations=["rotate", "flip"],
+        augmentations_3d=None,
+        config=None,
     ):
         self.kitti360Path = root
         self.split = split
-        self.voxel_size = voxel_size
-        self.num_points = num_points
-        self.sample_stride = sample_stride
-
-        self.reverse_label_name_mapping = LABELS
+        self.modality = modality
         self.num_classes = KITTI360_NUM_CLASSES
-        self.angle = 0.0
-        self.radius = radius
-        self.augmentations = augmentations
-        self.seed = 2389
 
-        label_dir = os.path.join(
-            self.kitti360Path,
-            "data_3d_semantics",
-        )
+        # 3D Attributes
+        if self.modality == "lidar":
+            self.voxel_size = voxel_size
+            self.num_points = num_points
+            self.sample_stride = sample_stride
+            self.angle = 0.0
+            self.radius = radius
+            self.augmentations_3d = augmentations_3d
+            label_dir = os.path.join(
+                self.kitti360Path,
+                "data_3d_semantics",
+            )
+
+        # 2D Attributes
+        elif self.modality == "rgb":
+            self.seed = 2389
+            self.crop_obj = RandomCrop((376, 512))
+            self.label_2d_obj = Annotation2D()
+            self.feature_extractor = feature_extractor
+            if config is not None:
+                self.augmentations_2d = config["aug_list"]
+                self.cutout_size = config["cutout_size"]
+            else:
+                raise NotImplementedError("Config is None")
 
         # Get the training and validation splits
         train_file = os.path.join(
@@ -280,14 +312,28 @@ class KITTI360Internal:
         return len(self.frame_list)
 
     def __getitem__(self, idx):
+        if self.modality == "rgb":
+            # This is the getitem for standard supervised training
+            # Seed consistency is not necessary here
+            self.seed = np.random.randint(0, 2**32 - 1)
+            rgb_image, label_image = self.get_image(idx)
+            rgb_image, label_image = self.augment_rgb(
+                rgb_image, label_image, self.augmentations_2d, self.seed
+            )
+            feature_dict = self.extractor_2d(rgb_image, label_image)
+            return feature_dict
+        elif self.modality == "lidar":
+            pt_cloud, labels = self.__getitem_3d(idx)
+            pt_cloud = self.augment_3d(pt_cloud, self.augmentations_3d)
+            return self.voxelise_sparsify_3d(idx, pt_cloud, labels)
+        else:
+            raise NotImplementedError("Modality not implemented")
+
+    def __getitem_3d(self, idx):
         idx_info = self.frame_list[idx]
         point_file = idx_info["lidar_path"]
         # Load the point cloud
         pt_cloud, label, visible = self.read_kitti_360_npz(point_file)
-
-        # Only show visible points
-        # pt_cloud = pt_cloud[visible == 1]
-        # label = label[visible == 1]
 
         # Get the camera positions & frames
         camera_obj = self.camera_obj_list[idx_info["camera_obj_idx"]]
@@ -323,19 +369,11 @@ class KITTI360Internal:
         # Convert the labels to train IDs
         label = ID2TRAINID[label.astype(np.uint8)]
 
-        ####################
-        # Prepare the data #
-        ####################
-        # TODO The rotation doesn't need to be 3D
-        if "train" in self.split:
-            # theta = np.random.uniform(0, 2 * np.pi)
-            # scale_factor = np.random.uniform(0.95, 1.05)
-            # rot_mat = np.array(
-            #     [[np.cos(theta), np.sin(theta), 0], [-np.sin(theta), np.cos(theta), 0], [0, 0, 1]]
-            # )
+        return pt_cloud, label
 
-            # pt_cloud[:, :3] = np.dot(pt_cloud[:, :3], rot_mat) * scale_factor
-            pt_cloud[:, :3] = self.augment(pt_cloud[:, :3], self.augmentations)
+    def augment_3d(self, pt_cloud, augmentations):
+        if "train" in self.split:
+            pt_cloud[:, :3] = self.augment(pt_cloud[:, :3], augmentations)
         else:
             theta = self.angle
             transform_mat = np.array(
@@ -343,10 +381,12 @@ class KITTI360Internal:
             )
             pt_cloud[:, :3] = np.dot(pt_cloud[:, :3], transform_mat)
 
+        return pt_cloud
+
+    def voxelise_sparsify_3d(self, idx, pt_cloud, label):
         pc_ = np.round(pt_cloud[:, :3] / self.voxel_size).astype(np.int32)
         pc_ -= pc_.min(0, keepdims=1)
         feat_ = pt_cloud[:, 0:6]  # xyzRGB as features
-        # feat_[:, 0] = distances  # TODO test
         labels_ = label
 
         _, inds, inverse_map = sparse_quantize(pc_, return_index=True, return_inverse=True)
@@ -370,6 +410,89 @@ class KITTI360Internal:
             "file_name": self.frame_list[idx]["lidar_path"],
         }
 
+    def augment_rgb(self, rgb_image, label_image, augmentations, seed):
+        # Apply data augmentation
+        if self.split == "train":
+            # Random crop
+            torch.manual_seed(seed)
+            rgb_image = self.crop_obj(rgb_image)
+            torch.manual_seed(seed)
+            label_image = self.crop_obj(label_image)
+            # Random horizontal flip
+            if np.random.rand() < 0.5:
+                rgb_image = RandomHorizontalFlip(1)(rgb_image)
+                label_image = RandomHorizontalFlip(1)(label_image)
+
+            # # Random Autocontrast
+            # if np.random.rand() < 0.5:
+            #     rgb_image_student = RandomAutocontrast(1)(rgb_image_student)
+            # Random color jitter
+            if "jitter" in augmentations:
+                if np.random.rand() < 0.5:
+                    rgb_image = ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25)(
+                        rgb_image
+                    )
+            # Random Gaussian noise
+            if "blur" in augmentations:
+                if np.random.rand() < 0.2:
+                    rgb_image = GaussianBlur(5, sigma=(0.1, 1.5))(rgb_image)
+            # Apply AugMix for regularization
+            if "augmix" in augmentations:
+                if np.random.rand() < 0.5:
+                    rgb_image = AugMix(severity=1)(rgb_image)
+
+            # Apply CutOut for regularization
+            if "cutout" in augmentations:
+                sqare_size = 130
+                x1 = np.random.randint(0, rgb_image.size[0]) - sqare_size // 2
+                y1 = np.random.randint(0, rgb_image.size[1]) - sqare_size // 2
+                if x1 < 0:
+                    x1 = 0
+                if y1 < 0:
+                    y1 = 0
+                if x1 + sqare_size > rgb_image.size[0]:
+                    x1 = rgb_image.size[0] - sqare_size
+                if y1 + sqare_size > rgb_image.size[1]:
+                    y1 = rgb_image.size[1] - sqare_size
+
+                rgb_image = np.array(rgb_image)
+                rgb_image[x1 : x1 + sqare_size, y1 : y1 + sqare_size, :] = (0, 0, 0)
+
+        # Convert the labels to train IDs
+        return rgb_image, label_image
+
+    def extractor_2d(self, rgb_image, label_image):
+        label_image = np.array(label_image)
+        label_image = ID2TRAINID[label_image.astype(np.uint8)]
+
+        # randomly crop + pad both image and segmentation map to same size
+        encoded_inputs = self.feature_extractor(rgb_image, label_image, return_tensors="pt")
+        for k, v in encoded_inputs.items():
+            encoded_inputs[k].squeeze_()  # remove batch dimension
+        return {"encoded": encoded_inputs}
+
+    def get_image(self, idx):
+        idx_info = self.frame_list[idx]
+        image_nr = self.camera_obj_list[idx_info["camera_obj_idx"]].frames[idx_info["frame_idx"]]
+
+        sequence = self.frame_list[idx]["sequence"]
+        image = "%010d.png" % image_nr
+        rgb_file = os.path.join(
+            self.kitti360Path, "data_2d_raw", sequence, "image_00/data_rect", image
+        )
+        if self.split == "train":
+            label_file = os.path.join(
+                self.kitti360Path, "data_2d_semantics/train", sequence, "image_00/scribble", image
+            )
+        else:
+            label_file = os.path.join(
+                self.kitti360Path, "data_2d_semantics/train", sequence, "image_00/semantic", image
+            )
+
+        rgb_image = Image.open(rgb_file)
+        label_image = Image.open(label_file).convert("L")
+        return rgb_image, label_image
+
     def __extract_numbers_from_filename(self, filename):
         pattern = r"\d{10}"  # \d matches digits, {10} matches exactly 10 occurrences
         numbers = re.findall(pattern, filename)
@@ -390,6 +513,8 @@ class KITTI360Internal:
         return [index for index, t in enumerate(tuple_list) if t[0] <= value <= t[1]]
 
     def read_kitti_360_ply(self, filepath):
+        raise DeprecationWarning("This function is deprecated. Use read_kitti_360_npz instead.")
+
         with open(filepath, "rb") as f:
             window = PlyData.read(f)
 

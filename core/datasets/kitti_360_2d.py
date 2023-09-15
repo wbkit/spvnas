@@ -3,21 +3,26 @@
 import os
 import os.path
 import re
-import copy
 
+from PIL import Image
 from plyfile import PlyData
+from torchvision.transforms import (
+    ColorJitter,
+    RandomCrop,
+    RandomHorizontalFlip,
+    GaussianBlur,
+    RandomAutocontrast,
+    AugMix,
+)
 import numpy as np
 import torch
-from torchsparse import SparseTensor
-from torchsparse.utils.collate import sparse_collate_fn
-from torchsparse.utils.quantize import sparse_quantize
-from core.datasets.helpers.project import CameraPerspective
-from core.datasets.helpers.annotation import Annotation3DPly
-from core.datasets.helpers.labels import (
+from helpers.project import CameraPerspective
+from helpers.annotation import Annotation3DPly, Annotation2D
+from helpers.labels import (
     ID2TRAINID,
     KITTI360_NUM_CLASSES,
 )
-from core.datasets.helpers.labels import labels as LABELS
+from helpers.labels import labels as LABELS
 
 __all__ = ["KITTI360"]
 SEQ_TRAIN_VAL = [0, 2, 4, 5, 6, 7, 9, 10]
@@ -31,10 +36,10 @@ class KITTI360(dict):
         if submit_to_server:
             super().__init__(
                 {
-                    "train": KITTI360ema(
+                    "train": KITTI360Internal(
                         root, voxel_size, num_points, radius, sample_stride=1, split="train"
                     ),
-                    "test": KITTI360ema(
+                    "test": KITTI360Internal(
                         root, voxel_size, num_points, radius, sample_stride=1, split="test"
                     ),
                 }
@@ -42,7 +47,7 @@ class KITTI360(dict):
         else:
             super().__init__(
                 {
-                    "train": KITTI360ema(
+                    "train": KITTI360Internal(
                         root,
                         voxel_size,
                         num_points,
@@ -50,7 +55,7 @@ class KITTI360(dict):
                         sample_stride=1,
                         split="train",
                     ),
-                    "test": KITTI360ema(
+                    "test": KITTI360Internal(
                         root,
                         voxel_size,
                         num_points,
@@ -62,50 +67,6 @@ class KITTI360(dict):
             )
 
 
-class KITTI360ema:
-    def __init__(
-        self,
-        root,
-        voxel_size,
-        num_points,
-        radius,
-        split,
-        sample_stride=1,
-    ):
-        aug_student = ["rotate", "flip", "scale", "noise"]
-        aug_teacher = ["rotate", "flip"]
-
-        self.student = KITTI360Internal(
-            root, voxel_size, num_points, radius, split, sample_stride, aug_student
-        )
-        self.teacher = copy.copy(self.student)
-        self.teacher.augmentations = aug_teacher
-
-    def __getitem__(self, idx):
-        # Set the seed for numpy for both objects
-        seed = np.random.randint(0, 2**32 - 1)
-        self.student.seed = seed
-        self.teacher.seed = seed
-
-        student = self.student[idx]
-        teacher = self.teacher[idx]
-
-        output = student
-        output["lidar_teacher"] = teacher["lidar"]
-        output["targets_teacher"] = teacher["targets"]
-        output["inverse_map_teacher"] = teacher["inverse_map"]
-        output["forward_map_teacher"] = teacher["forward_map"]
-        return output
-
-    def __len__(self):
-        return len(self.student)
-
-    @staticmethod
-    def collate_fn(inputs):
-        batch = sparse_collate_fn(inputs)
-        return batch
-
-
 class KITTI360Internal:
     def __init__(
         self,
@@ -114,21 +75,33 @@ class KITTI360Internal:
         num_points,
         radius,
         split,
+        modality,
+        feature_extractor=None,
         sample_stride=1,
-        augmentations=["rotate", "flip"],
+        config=None,
     ):
         self.kitti360Path = root
         self.split = split
+        self.modality = modality
         self.voxel_size = voxel_size
         self.num_points = num_points
         self.sample_stride = sample_stride
+        if config is not None:
+            self.student_aug = config["student"]["aug_list"]
+            self.cutout_size = config["student"]["cutout_size"]
+        else:
+            self.student_aug = ["jitter"]
+            self.cutout_size = 120
 
         self.reverse_label_name_mapping = LABELS
         self.num_classes = KITTI360_NUM_CLASSES
         self.angle = 0.0
         self.radius = radius
-        self.augmentations = augmentations
-        self.seed = 2389
+
+        self.crop_obj = RandomCrop((376, 512))
+
+        self.label_2d_obj = Annotation2D()
+        self.feature_extractor = feature_extractor
 
         label_dir = os.path.join(
             self.kitti360Path,
@@ -142,7 +115,6 @@ class KITTI360Internal:
         val_file = os.path.join(
             self.kitti360Path, "data_3d_semantics/train/2013_05_28_drive_val.txt"
         )
-
         with open(train_file, "r") as f:
             train_chunk_list = [line.strip() for line in f]
         with open(val_file, "r") as f:
@@ -244,50 +216,24 @@ class KITTI360Internal:
     def set_angle(self, angle):
         self.angle = angle
 
-    @staticmethod
-    def augment(xyz, methods):
-        if "rotate" in methods:
-            angle = np.deg2rad(np.random.random() * 90) - np.pi / 4
-            c, s = np.cos(angle), np.sin(angle)
-            R = np.matrix([[c, s], [-s, c]])
-            xyz[:, :2] = np.dot(xyz[:, :2], R)
-
-        if "flip" in methods:
-            direction = np.random.choice(4, 1)
-            if direction == 1:
-                xyz[:, 0] = -xyz[:, 0]
-            elif direction == 2:
-                xyz[:, 1] = -xyz[:, 1]
-            elif direction == 3:
-                xyz[:, :2] = -xyz[:, :2]
-
-        if "scale" in methods:
-            s = np.random.uniform(0.95, 1.05)
-            xyz[:, :2] = s * xyz[:, :2]
-
-        if "noise" in methods:
-            noise = np.array(
-                [
-                    np.random.normal(0, 0.1, 1),
-                    np.random.normal(0, 0.1, 1),
-                    np.random.normal(0, 0.1, 1),
-                ]
-            ).T
-            xyz[:, :3] += noise
-        return xyz
-
     def __len__(self):
         return len(self.frame_list)
 
     def __getitem__(self, idx):
+        if self.modality == "rgb":
+            return self.__getitem_rgb(idx)
+        else:
+            return self.__getitem_3d(idx)
+
+    def __getitem_3d(self, idx):
         idx_info = self.frame_list[idx]
         point_file = idx_info["lidar_path"]
         # Load the point cloud
         pt_cloud, label, visible = self.read_kitti_360_npz(point_file)
 
         # Only show visible points
-        # pt_cloud = pt_cloud[visible == 1]
-        # label = label[visible == 1]
+        pt_cloud = pt_cloud[visible == 1]
+        label = label[visible == 1]
 
         # Get the camera positions & frames
         camera_obj = self.camera_obj_list[idx_info["camera_obj_idx"]]
@@ -312,10 +258,7 @@ class KITTI360Internal:
         # Select a random subset of points
         inds = np.linspace(0, pt_cloud.shape[0] - 1, pt_cloud.shape[0], dtype=int)
         if pt_cloud.shape[0] > self.num_points:
-            # Set the seed for numpy
-            np.random.seed(self.seed)
             inds = np.random.choice(inds, self.num_points, replace=False)
-            # inds = np.linspace(0, pt_cloud.shape[0] - 1, self.num_points, dtype=int)
             pt_cloud = pt_cloud[inds, :]
             label = label[inds]
             # distances = distances[inds]  # TODO test
@@ -328,14 +271,13 @@ class KITTI360Internal:
         ####################
         # TODO The rotation doesn't need to be 3D
         if "train" in self.split:
-            # theta = np.random.uniform(0, 2 * np.pi)
-            # scale_factor = np.random.uniform(0.95, 1.05)
-            # rot_mat = np.array(
-            #     [[np.cos(theta), np.sin(theta), 0], [-np.sin(theta), np.cos(theta), 0], [0, 0, 1]]
-            # )
+            theta = np.random.uniform(0, 2 * np.pi)
+            scale_factor = np.random.uniform(0.95, 1.05)
+            rot_mat = np.array(
+                [[np.cos(theta), np.sin(theta), 0], [-np.sin(theta), np.cos(theta), 0], [0, 0, 1]]
+            )
 
-            # pt_cloud[:, :3] = np.dot(pt_cloud[:, :3], rot_mat) * scale_factor
-            pt_cloud[:, :3] = self.augment(pt_cloud[:, :3], self.augmentations)
+            pt_cloud[:, :3] = np.dot(pt_cloud[:, :3], rot_mat) * scale_factor
         else:
             theta = self.angle
             transform_mat = np.array(
@@ -349,26 +291,115 @@ class KITTI360Internal:
         # feat_[:, 0] = distances  # TODO test
         labels_ = label
 
-        _, inds, inverse_map = sparse_quantize(pc_, return_index=True, return_inverse=True)
+        # _, inds, inverse_map = sparse_quantize(pc_, return_index=True, return_inverse=True)
 
-        pc = pc_[inds]
-        feat = feat_[inds].astype(np.float32)
-        labels = labels_[inds]
+        # pc = pc_[inds]
+        # feat = feat_[inds].astype(np.float32)
+        # labels = labels_[inds]
+        # lidar = SparseTensor(feat, pc)
+        # labels = SparseTensor(labels, pc)
+        # labels_ = SparseTensor(labels_, pc_)
+        # inverse_map = SparseTensor(inverse_map, pc_)
 
-        lidar = SparseTensor(feat, pc)
-        labels = SparseTensor(labels, pc)
-        labels_ = SparseTensor(labels_, pc_)
-        inverse_map = SparseTensor(inverse_map, pc_)
-        forward_map = SparseTensor(inds, pc)
+        # return {
+        #     "lidar": lidar,
+        #     "targets": labels,
+        #     "targets_mapped": labels_,
+        #     "inverse_map": inverse_map,
+        #     "file_name": self.frame_list[idx]["lidar_path"],
+        # }
+        return NotImplementedError
 
-        return {
-            "lidar": lidar,
-            "targets": labels,
-            "targets_mapped": labels_,
-            "inverse_map": inverse_map,
-            "forward_map": forward_map,
-            "file_name": self.frame_list[idx]["lidar_path"],
-        }
+    def __getitem_rgb(self, idx):
+        rgb_image, label_image = self.get_image(idx)
+
+        # Apply data augmentation
+        if self.split == "train":
+            # Random crop
+            seed = torch.randint(0, 2**32 - 1, ())
+            torch.manual_seed(seed)
+            rgb_image = self.crop_obj(rgb_image)
+            torch.manual_seed(seed)
+            label_image = self.crop_obj(label_image)
+            # Random horizontal flip
+            if np.random.rand() < 0.5:
+                rgb_image = RandomHorizontalFlip(1)(rgb_image)
+                label_image = RandomHorizontalFlip(1)(label_image)
+
+        rgb_image_student = rgb_image.copy()
+        if self.split == "train":
+            # # Random Autocontrast
+            # if np.random.rand() < 0.5:
+            #     rgb_image_student = RandomAutocontrast(1)(rgb_image_student)
+            # Random color jitter
+            if "jitter" in self.student_aug:
+                if np.random.rand() < 0.5:
+                    rgb_image_student = ColorJitter(
+                        brightness=0.25, contrast=0.25, saturation=0.25
+                    )(rgb_image_student)
+            # Random Gaussian noise
+            if "blur" in self.student_aug:
+                if np.random.rand() < 0.2:
+                    rgb_image_student = GaussianBlur(5, sigma=(0.1, 1.5))(rgb_image_student)
+            # Apply AugMix for regularization
+            if "augmix" in self.student_aug:
+                if np.random.rand() < 0.5:
+                    rgb_image_student = AugMix(severity=1)(rgb_image_student)
+
+            # Apply CutOut for regularization
+            if "cutout" in self.student_aug:
+                sqare_size = 130
+                x1 = np.random.randint(0, rgb_image_student.size[0]) - sqare_size // 2
+                y1 = np.random.randint(0, rgb_image_student.size[1]) - sqare_size // 2
+                if x1 < 0:
+                    x1 = 0
+                if y1 < 0:
+                    y1 = 0
+                if x1 + sqare_size > rgb_image_student.size[0]:
+                    x1 = rgb_image_student.size[0] - sqare_size
+                if y1 + sqare_size > rgb_image_student.size[1]:
+                    y1 = rgb_image_student.size[1] - sqare_size
+
+                rgb_image_student = np.array(rgb_image_student)
+                rgb_image_student[x1 : x1 + sqare_size, y1 : y1 + sqare_size, :] = (0, 0, 0)
+
+        # Convert the labels to train IDs
+        label_image = np.array(label_image)
+        label_image = ID2TRAINID[label_image.astype(np.uint8)]
+
+        # randomly crop + pad both image and segmentation map to same size
+        encoded_inputs_teacher = self.feature_extractor(rgb_image, label_image, return_tensors="pt")
+        for k, v in encoded_inputs_teacher.items():
+            encoded_inputs_teacher[k].squeeze_()  # remove batch dimension
+        encoded_inputs_student = self.feature_extractor(
+            rgb_image_student, label_image, return_tensors="pt"
+        )
+        for k, v in encoded_inputs_student.items():
+            encoded_inputs_student[k].squeeze_()  # remove batch dimension
+
+        return {"student": encoded_inputs_student, "teacher": encoded_inputs_teacher}
+
+    def get_image(self, idx):
+        idx_info = self.frame_list[idx]
+        image_nr = self.camera_obj_list[idx_info["camera_obj_idx"]].frames[idx_info["frame_idx"]]
+
+        sequence = self.frame_list[idx]["sequence"]
+        image = "%010d.png" % image_nr
+        rgb_file = os.path.join(
+            self.kitti360Path, "data_2d_raw", sequence, "image_00/data_rect", image
+        )
+        if self.split == "train":
+            label_file = os.path.join(
+                self.kitti360Path, "data_2d_semantics/train", sequence, "image_00/scribble", image
+            )
+        else:
+            label_file = os.path.join(
+                self.kitti360Path, "data_2d_semantics/train", sequence, "image_00/semantic", image
+            )
+
+        rgb_image = Image.open(rgb_file)
+        label_image = Image.open(label_file).convert("L")
+        return rgb_image, label_image
 
     def __extract_numbers_from_filename(self, filename):
         pattern = r"\d{10}"  # \d matches digits, {10} matches exactly 10 occurrences
@@ -415,12 +446,109 @@ class KITTI360Internal:
         # Replace the file extension
         filepath = filepath.replace(".ply", ".npz")
         data = np.load(filepath)
-        if self.split == "train":
-            return data["pt_cloud"], data["label"], data["visible"]
-        else:
-            return data["pt_cloud"], data["label"], data["visible"]
+        return data["pt_cloud"], data["label"], data["visible"]
 
     @staticmethod
     def collate_fn(inputs):
         batch = sparse_collate_fn(inputs)
         return batch
+
+
+class KITTI360ts(KITTI360Internal):
+    def __init__(
+        self,
+        root,
+        voxel_size,
+        num_points,
+        radius,
+        split,
+        modality,
+        feature_extractor=None,
+        sample_stride=1,
+    ):
+        super().__init__(
+            root,
+            voxel_size,
+            num_points,
+            radius,
+            split,
+            "rgb",
+            feature_extractor=None,
+            sample_stride=1,
+        )
+
+    def __getitem__(self, idx):
+        rgb_image, label_image = self.get_image(idx)
+
+        # # Apply data augmentation that is consistent across student and teacher
+        # if self.split == "train":
+        #     # Random crop
+        #     seed = torch.randint(0, 2**32 - 1, ())
+        #     torch.manual_seed(seed)
+        #     rgb_image = self.crop_obj(rgb_image)
+        #     torch.manual_seed(seed)
+        #     label_image = self.crop_obj(label_image)
+        #     # Random horizontal flip
+        #     if np.random.rand() < 0.5:
+        #         rgb_image = RandomHorizontalFlip(1)(rgb_image)
+        #         label_image = RandomHorizontalFlip(1)(label_image)
+
+        # rgb_image_student = rgb_image.copy()
+        # if self.split == "train":
+        #     # Random Autocontrast
+        #     if np.random.rand() < 0.5:
+        #         rgb_image_student = RandomAutocontrast(1)(rgb_image_student)
+        #     # Random color jitter
+        #     rgb_image_student = ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)(
+        #         rgb_image_student
+        #     )
+        #     # Random Gaussian noise
+        #     if np.random.rand() < 0.5:
+        #         rgb_image_student = GaussianBlur(1)(rgb_image_student)
+        #     # Random Gausssian blur
+        #     if np.random.rand() < 0.5:
+        #         rgb_image_student = GaussianBlur(5)(rgb_image_student)
+
+        # # Convert the labels to train IDs
+        # label_image = np.array(label_image)
+        # label_image = ID2TRAINID[label_image.astype(np.uint8)]
+
+        # try:
+        #     # encoded_inputs_student = self.feature_extractor(
+        #     #     rgb_image_student, label_image, return_tensors="pt"
+        #     # )
+        #     # for k, v in encoded_inputs_student.items():
+        #     #     encoded_inputs_student[k].squeeze_()  # remove batch dimension
+        #     encoded_inputs_teacher = self.feature_extractor(
+        #         rgb_image, label_image, return_tensors="pt"
+        #     )
+        #     for k, v in encoded_inputs_teacher.items():
+        #         encoded_inputs_teacher[k].squeeze_()  # remove batch dimension
+        # except:
+        #     print("Exeption")
+
+        # Apply data augmentation
+        if self.split == "train":
+            # Random crop
+            seed = torch.randint(0, 2**32 - 1, ())
+            torch.manual_seed(seed)
+            rgb_image = self.crop_obj(rgb_image)
+            torch.manual_seed(seed)
+            label_image = self.crop_obj(label_image)
+            # Random horizontal flip
+            if np.random.rand() < 0.5:
+                rgb_image = RandomHorizontalFlip(1)(rgb_image)
+                label_image = RandomHorizontalFlip(1)(label_image)
+            # Random color jitter
+            rgb_image = ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)(rgb_image)
+
+        # Convert the labels to train IDs
+        label_image = np.array(label_image)
+        label_image = ID2TRAINID[label_image.astype(np.uint8)]
+
+        # randomly crop + pad both image and segmentation map to same size
+        encoded_inputs_teacher = self.feature_extractor(rgb_image, label_image, return_tensors="pt")
+        for k, v in encoded_inputs_teacher.items():
+            encoded_inputs_teacher[k].squeeze_()  # remove batch dimension
+
+        return {"student": encoded_inputs_teacher, "teacher": encoded_inputs_teacher}

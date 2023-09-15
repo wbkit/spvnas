@@ -11,4 +11,4 @@ conda activate spvnas_env
 cd /scratch_net/biwidl303/wboet/spvnas/
 export WANDB_API_KEY="0322462376b9a116ff57a7a823c3aa3b912ba141"
 export WANDB_ENTITY="wbeth"
-torchpack dist-run -np 2 python train.py configs/kitti_360/minkunet/cr0p5.yaml --run-dir ./runs/mink_0p5_80k_50m"$@"
+torchpack dist-run -np 2 python train.py configs/kitti_360/spvcnn/cr0p5.yaml --run-dir ./runs/mea_spvcnn_lovasz_0p5_80k_50m"$@"

@@ -99,7 +99,7 @@ class SemanticKITTITrainer(Trainer):
 
                 loss = self.criterion(
                     outputs_student, out_teacher_mapped_student, targets
-                ) + self.criterion_lovasz(voutputs_student, vtargets)
+                ) + 0.1 * self.criterion_lovasz(voutputs_student, vtargets)
 
         if outputs_student.requires_grad:
             self.summary.add_scalar("loss", loss.item())

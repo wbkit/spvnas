@@ -23,11 +23,21 @@ def make_dataset() -> Dataset:
     elif configs.dataset.name == "kitti_360":
         from core.datasets import KITTI360
 
+        # from core.datasets.kitti_360_3d import KITTI360
+        # from transformers import SegformerFeatureExtractor
+
+        # feature_extractor = SegformerFeatureExtractor().from_pretrained(
+        #     "nvidia/segformer-b3-finetuned-cityscapes-1024-1024"
+        # )
+        # feature_extractor.do_reduce_labels = False
+        # feature_extractor.size = {"height": 376, "width": 512}
+
         dataset = KITTI360(
             root=configs.dataset.root,
             num_points=configs.dataset.num_points,
             voxel_size=configs.dataset.voxel_size,
             radius=configs.dataset.radius,
+            # feature_extractor=feature_extractor,
         )
     else:
         raise NotImplementedError(configs.dataset.name)

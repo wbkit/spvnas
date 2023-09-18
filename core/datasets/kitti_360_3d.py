@@ -12,7 +12,6 @@ from torchvision.transforms import (
     RandomCrop,
     RandomHorizontalFlip,
     GaussianBlur,
-    AugMix,
 )
 import numpy as np
 from core.datasets.helpers.project import CameraPerspective
@@ -20,6 +19,7 @@ import torch
 from torchsparse import SparseTensor
 from torchsparse.utils.collate import sparse_collate_fn
 from torchsparse.utils.quantize import sparse_quantize
+
 from core.datasets.helpers.project import CameraPerspective
 from core.datasets.helpers.annotation import Annotation3DPly, Annotation2D
 from core.datasets.helpers.labels import (
@@ -41,10 +41,22 @@ class KITTI360(dict):
             super().__init__(
                 {
                     "train": KITTI360ema(
-                        root, voxel_size, num_points, radius, sample_stride=1, split="train"
+                        root,
+                        voxel_size,
+                        num_points,
+                        radius,
+                        feature_extractor=kwargs.get("feature_extractor", None),
+                        sample_stride=1,
+                        split="train",
                     ),
                     "test": KITTI360ema(
-                        root, voxel_size, num_points, radius, sample_stride=1, split="test"
+                        root,
+                        voxel_size,
+                        num_points,
+                        radius,
+                        feature_extractor=kwargs.get("feature_extractor", None),
+                        sample_stride=1,
+                        split="test",
                     ),
                 }
             )
@@ -56,6 +68,7 @@ class KITTI360(dict):
                         voxel_size,
                         num_points,
                         radius,
+                        feature_extractor=kwargs.get("feature_extractor", None),
                         sample_stride=1,
                         split="train",
                     ),
@@ -64,63 +77,12 @@ class KITTI360(dict):
                         voxel_size,
                         num_points,
                         radius,
+                        feature_extractor=kwargs.get("feature_extractor", None),
                         sample_stride=sample_stride,
                         split="val",
                     ),
                 }
             )
-
-
-class KITTI360ema(KITTI360Internal):
-    def __init__(
-        self,
-        root,
-        voxel_size,
-        num_points,
-        radius,
-        split,
-        sample_stride=1,
-    ):
-        super().__init__(
-            root,
-            split,
-            "lidar",
-            voxel_size,
-            num_points,
-            radius,
-            sample_stride=sample_stride,
-            augmentations_3d=["rotate", "flip"],
-        )
-        self.aug_student = ["rotate", "flip", "scale", "noise"]
-        self.aug_teacher = ["rotate", "flip"]
-
-    def __getitem__(self, idx):
-        # Set the seed for numpy for both objects
-        seed = np.random.randint(0, 2**32 - 1)
-        self.seed = seed
-
-        # Get the student and teacher data
-        pt_cloud, labels = self.__getitem_3d(idx)
-        pt_cloud_student = self.augment_3d(pt_cloud, self.aug_student)
-        pt_cloud_teacher = self.augment_3d(pt_cloud, self.aug_teacher)
-
-        dict_student = self.voxelise_sparsify_3d(idx, pt_cloud_student, labels)
-        dict_teacher = self.voxelise_sparsify_3d(idx, pt_cloud_teacher, labels)
-
-        # Add the teacher data to the student data and put the respective name in front of all keys
-        for key in dict_teacher.keys():
-            dict_student["student_" + key] = dict_student.pop(key)
-            dict_student["teacher_" + key] = dict_teacher[key]
-
-        return dict_student
-
-    def __len__(self):
-        return len(self.student)
-
-    @staticmethod
-    def collate_fn(inputs):
-        batch = sparse_collate_fn(inputs)
-        return batch
 
 
 class KITTI360Internal:
@@ -135,7 +97,8 @@ class KITTI360Internal:
         feature_extractor=None,
         sample_stride=1,
         augmentations_3d=None,
-        config=None,
+        augmentations_2d=None,
+        cutout_size=None,
     ):
         self.kitti360Path = root
         self.split = split
@@ -143,7 +106,7 @@ class KITTI360Internal:
         self.num_classes = KITTI360_NUM_CLASSES
 
         # 3D Attributes
-        if self.modality == "lidar":
+        if "lidar" in self.modality:
             self.voxel_size = voxel_size
             self.num_points = num_points
             self.sample_stride = sample_stride
@@ -156,16 +119,13 @@ class KITTI360Internal:
             )
 
         # 2D Attributes
-        elif self.modality == "rgb":
+        if "rgb" in self.modality:
             self.seed = 2389
             self.crop_obj = RandomCrop((376, 512))
             self.label_2d_obj = Annotation2D()
             self.feature_extractor = feature_extractor
-            if config is not None:
-                self.augmentations_2d = config["aug_list"]
-                self.cutout_size = config["cutout_size"]
-            else:
-                raise NotImplementedError("Config is None")
+            self.augmentations_2d = augmentations_2d
+            self.cutout_size = cutout_size
 
         # Get the training and validation splits
         train_file = os.path.join(
@@ -323,13 +283,13 @@ class KITTI360Internal:
             feature_dict = self.extractor_2d(rgb_image, label_image)
             return feature_dict
         elif self.modality == "lidar":
-            pt_cloud, labels = self.__getitem_3d(idx)
+            pt_cloud, labels = self.getitem_3d(idx)
             pt_cloud = self.augment_3d(pt_cloud, self.augmentations_3d)
             return self.voxelise_sparsify_3d(idx, pt_cloud, labels)
         else:
             raise NotImplementedError("Modality not implemented")
 
-    def __getitem_3d(self, idx):
+    def getitem_3d(self, idx):
         idx_info = self.frame_list[idx]
         point_file = idx_info["lidar_path"]
         # Load the point cloud
@@ -414,32 +374,32 @@ class KITTI360Internal:
         # Apply data augmentation
         if self.split == "train":
             # Random crop
-            torch.manual_seed(seed)
-            rgb_image = self.crop_obj(rgb_image)
-            torch.manual_seed(seed)
-            label_image = self.crop_obj(label_image)
+            if "crop" in augmentations:
+                seed = torch.randint(0, 2**32 - 1, ())
+                torch.manual_seed(seed)
+                rgb_image = self.crop_obj(rgb_image)
+                torch.manual_seed(seed)
+                label_image = self.crop_obj(label_image)
             # Random horizontal flip
-            if np.random.rand() < 0.5:
-                rgb_image = RandomHorizontalFlip(1)(rgb_image)
-                label_image = RandomHorizontalFlip(1)(label_image)
+            if "flip" in augmentations:
+                if np.random.rand() < 0.5:
+                    rgb_image = RandomHorizontalFlip(1)(rgb_image)
+                    label_image = RandomHorizontalFlip(1)(label_image)
 
             # # Random Autocontrast
             # if np.random.rand() < 0.5:
             #     rgb_image_student = RandomAutocontrast(1)(rgb_image_student)
             # Random color jitter
             if "jitter" in augmentations:
-                if np.random.rand() < 0.5:
-                    rgb_image = ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25)(
-                        rgb_image
-                    )
+                rgb_image = ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25)(rgb_image)
             # Random Gaussian noise
             if "blur" in augmentations:
                 if np.random.rand() < 0.2:
                     rgb_image = GaussianBlur(5, sigma=(0.1, 1.5))(rgb_image)
             # Apply AugMix for regularization
-            if "augmix" in augmentations:
-                if np.random.rand() < 0.5:
-                    rgb_image = AugMix(severity=1)(rgb_image)
+            # if "augmix" in augmentations:
+            #    if np.random.rand() < 0.5:
+            #        rgb_image = AugMix(severity=1)(rgb_image)
 
             # Apply CutOut for regularization
             if "cutout" in augmentations:
@@ -469,7 +429,7 @@ class KITTI360Internal:
         encoded_inputs = self.feature_extractor(rgb_image, label_image, return_tensors="pt")
         for k, v in encoded_inputs.items():
             encoded_inputs[k].squeeze_()  # remove batch dimension
-        return {"encoded": encoded_inputs}
+        return {"pixel_values": encoded_inputs["pixel_values"], "labels": encoded_inputs["labels"]}
 
     def get_image(self, idx):
         idx_info = self.frame_list[idx]
@@ -549,3 +509,72 @@ class KITTI360Internal:
     def collate_fn(inputs):
         batch = sparse_collate_fn(inputs)
         return batch
+
+
+class KITTI360ema(KITTI360Internal):
+    def __init__(
+        self,
+        root,
+        voxel_size,
+        num_points,
+        radius,
+        feature_extractor,
+        split,
+        sample_stride=1,
+    ):
+        super().__init__(
+            root,
+            split,
+            ["lidar", "rgb"],
+            voxel_size,
+            num_points,
+            radius,
+            feature_extractor=feature_extractor,
+            sample_stride=sample_stride,
+            augmentations_3d=["rotate", "flip"],
+            augmentations_2d=["cutout"],
+            cutout_size=130,
+        )
+        self.aug_student = ["rotate", "flip", "scale", "noise"]
+        self.aug_teacher = ["rotate", "flip"]
+        self.augmentations_2d = ["cutout"]
+        self.base_aug_2d = ["flip", "crop", "jitter"]
+
+    def __getitem__(self, idx):
+        # Set the seed for numpy for both objects
+        seed = np.random.randint(0, 2**32 - 1)
+        self.seed = seed
+
+        ## 3D - Get the student and teacher data
+        pt_cloud, labels = self.getitem_3d(idx)
+        pt_cloud_student = self.augment_3d(pt_cloud, self.aug_student)
+        pt_cloud_teacher = self.augment_3d(pt_cloud, self.aug_teacher)
+
+        dict_student = self.voxelise_sparsify_3d(idx, pt_cloud_student, labels)
+        dict_teacher = self.voxelise_sparsify_3d(idx, pt_cloud_teacher, labels)
+
+        # Add the teacher data to the student data and put the respective name in front of all keys
+        for key in dict_teacher.keys():
+            dict_student["student_" + key] = dict_student.pop(key)
+            dict_student["teacher_" + key] = dict_teacher[key]
+
+        ## 2D - Get the student and teacher data
+        rgb_image, label_image = self.get_image(idx)
+        rgb_image_teacher, label_image_teacher = self.augment_rgb(
+            rgb_image, label_image, self.base_aug_2d, seed
+        )
+        rgb_image_student, label_image_student = self.augment_rgb(
+            rgb_image_teacher, label_image_teacher, self.augmentations_2d, seed
+        )
+
+        feature_dict_student = self.extractor_2d(rgb_image_student, label_image_student)
+        feature_dict_teacher = self.extractor_2d(rgb_image_teacher, label_image_teacher)
+
+        # Add the teacher data to the student data and put the respective name in front of all keys
+        for key in feature_dict_teacher.keys():
+            feature_dict_student["student_" + key] = feature_dict_student.pop(key)
+            feature_dict_student["teacher_" + key] = feature_dict_teacher[key]
+        # Append feature_dict_student to dict_student
+        dict_student.update(feature_dict_student)
+
+        return dict_student

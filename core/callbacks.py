@@ -4,7 +4,10 @@ import numpy as np
 import torch
 from torchpack import distributed as dist
 from torchpack.callbacks.callback import Callback
+from torchmetrics.classification import MulticlassConfusionMatrix
 import wandb
+
+from core.evaluation import compute_iou
 
 __all__ = ["MeanIoU"]
 
@@ -17,18 +20,27 @@ class MeanIoU(Callback):
         *,
         output_tensor: str = "outputs",
         target_tensor: str = "targets",
-        name: str = "iou"
+        name: str = "iou",
     ) -> None:
         self.num_classes = num_classes
+        self.num_classes = 15
         self.ignore_label = ignore_label
         self.name = name
         self.output_tensor = output_tensor
         self.target_tensor = target_tensor
 
+        self.val_mean_cm_student = MulticlassConfusionMatrix(
+            num_classes=16,
+            normalize="true",
+            ignore_index=255,
+        ).to("cuda")
+        self.step_counter = 0
+
     def _before_epoch(self) -> None:
         self.total_seen = np.zeros(self.num_classes)
         self.total_correct = np.zeros(self.num_classes)
         self.total_positive = np.zeros(self.num_classes)
+        self.step_counter = 0
 
     def _after_step(self, output_dict: Dict[str, Any]) -> None:
         outputs = output_dict[self.output_tensor]
@@ -40,6 +52,38 @@ class MeanIoU(Callback):
             self.total_seen[i] += torch.sum(targets == i).item()
             self.total_correct[i] += torch.sum((targets == i) & (outputs == targets)).item()
             self.total_positive[i] += torch.sum(outputs == i).item()
+
+        # 2D
+        # mIoU
+        outputs_2d = output_dict["outputs_2d"]
+        targets_2d = output_dict["targets_2d"]
+        self.val_mean_cm_student.update(outputs_2d, targets_2d)
+        # Visualise
+        if self.step_counter in [0, 99, 200, 300, 400, 500, 600, 700, 810, 900]:
+            print("Log images")
+            outputs_2d = output_dict["outputs_2d"].argmax(dim=1).detach().cpu().numpy()[0]
+            targets_2d = output_dict["targets_2d"].detach().cpu().numpy()[0]
+            image_2d = output_dict["images"].detach().cpu().numpy()[0]
+            image_2d = np.moveaxis(image_2d, 0, -1)
+
+            image = wandb.Image(
+                image_2d,
+                masks={
+                    "predictions": {
+                        "mask_data": outputs_2d,
+                    }
+                },
+            )
+            image2 = wandb.Image(
+                image_2d,
+                masks={
+                    "predictions": {
+                        "mask_data": targets_2d,
+                    }
+                },
+            )
+            wandb.log({f"image{self.step_counter}": image, f"label{self.step_counter}": image2})
+        self.step_counter += 1
 
     def _after_epoch(self) -> None:
         for i in range(self.num_classes):
@@ -63,10 +107,15 @@ class MeanIoU(Callback):
         for i, iou_val in enumerate(ious):
             wandb.log({"iou_{}".format(i): iou_val * 100})
 
-
         miou = np.mean(ious)
         if hasattr(self, "trainer") and hasattr(self.trainer, "summary"):
             self.trainer.summary.add_scalar(self.name, miou * 100)
         else:
             print(ious)
             print(miou)
+
+        # 2D mIoU calculation
+        ciou, miou = compute_iou(self.val_mean_cm_student.compute())
+        wandb.log({"mean_iou_2d": miou})
+        for i, iou_val in enumerate(ciou):
+            wandb.log({"iou_2d_{}".format(i): iou_val * 100})

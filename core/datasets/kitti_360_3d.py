@@ -26,6 +26,7 @@ from core.datasets.helpers.labels import (
     ID2TRAINID,
     KITTI360_NUM_CLASSES,
 )
+from core.datasets.helpers.labels_2d import ID2TRAINID as ID2TRAINID_2D
 from core.datasets.helpers.labels import labels as LABELS
 
 __all__ = ["KITTI360"]
@@ -372,14 +373,15 @@ class KITTI360Internal:
 
     def augment_rgb(self, rgb_image, label_image, augmentations, seed):
         # Apply data augmentation
+        # Random crop
+        if "crop" in augmentations:
+            seed = torch.randint(0, 2**32 - 1, ())
+            torch.manual_seed(seed)
+            rgb_image = self.crop_obj(rgb_image)
+            torch.manual_seed(seed)
+            label_image = self.crop_obj(label_image)
+
         if self.split == "train":
-            # Random crop
-            if "crop" in augmentations:
-                seed = torch.randint(0, 2**32 - 1, ())
-                torch.manual_seed(seed)
-                rgb_image = self.crop_obj(rgb_image)
-                torch.manual_seed(seed)
-                label_image = self.crop_obj(label_image)
             # Random horizontal flip
             if "flip" in augmentations:
                 if np.random.rand() < 0.5:
@@ -423,7 +425,7 @@ class KITTI360Internal:
 
     def extractor_2d(self, rgb_image, label_image):
         label_image = np.array(label_image)
-        label_image = ID2TRAINID[label_image.astype(np.uint8)]
+        label_image = ID2TRAINID_2D[label_image.astype(np.uint8)]
 
         # randomly crop + pad both image and segmentation map to same size
         encoded_inputs = self.feature_extractor(rgb_image, label_image, return_tensors="pt")

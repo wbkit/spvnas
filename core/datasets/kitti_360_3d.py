@@ -141,8 +141,8 @@ class KITTI360Internal:
         with open(val_file, "r") as f:
             val_chunk_list = [line.strip() for line in f]
 
-        # train_chunk_list = train_chunk_list[::3]
-        # val_chunk_list = val_chunk_list[::3]
+        train_chunk_list = train_chunk_list[::3]
+        val_chunk_list = val_chunk_list[::3]
 
         camera_obj_list = []
         lidar_obj_list = []
@@ -444,7 +444,11 @@ class KITTI360Internal:
         )
         if self.split == "train":
             label_file = os.path.join(
-                self.kitti360Path, "data_2d_semantics/train", sequence, "image_00/scribble", image
+                self.kitti360Path,
+                "data_2d_semantics/train",
+                sequence,
+                "image_00/scribble",
+                image,
             )
         else:
             label_file = os.path.join(
@@ -503,7 +507,7 @@ class KITTI360Internal:
         filepath = filepath.replace(".ply", ".npz")
         data = np.load(filepath)
         if self.split == "train":
-            return data["pt_cloud"], data["label"], data["visible"]
+            return data["pt_cloud"], data["label_sparse"], data["visible"]
         else:
             return data["pt_cloud"], data["label"], data["visible"]
 

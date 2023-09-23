@@ -83,6 +83,17 @@ class MeanIoU(Callback):
                 },
             )
             wandb.log({f"image{self.step_counter}": image, f"label{self.step_counter}": image2})
+
+            if self.step_counter in [0, 99]:
+                # 3D point cloud
+                coords = output_dict["input"][:80000, :3].detach().cpu().numpy()
+                outputs_3d = output_dict["outputs"][:80000].detach().cpu().numpy()
+                # merge coordinates and labels
+                pt_cloud = np.concatenate([coords, outputs_3d[:, None]], axis=1)
+                # to wandb
+                pt_cloud = wandb.Object3D({"type": "lidar/beta", "points": pt_cloud})
+                wandb.log({f"pt_cloud{self.step_counter}": pt_cloud})
+
         self.step_counter += 1
 
     def _after_epoch(self) -> None:

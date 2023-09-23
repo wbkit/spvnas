@@ -47,7 +47,9 @@ class SemanticKITTITrainer(Trainer):
         # self.criterion_lovasz = lovasz_softmax_flat
         self.criterion2D = PartialConsistencyLoss2D(nn.CrossEntropyLoss, ignore_index=255, beta=0.1)
         self.optimizer = optimizer
-        self.optimizer2D = torch.optim.Adam(self.student_2d.parameters(), lr=2e-05, eps=1e-08)
+        self.optimizer2D = torch.optim.Adam(
+            [p for p in self.student_2d.parameters() if p.requires_grad], lr=2e-05, eps=1e-08
+        )
         self.scheduler = scheduler
         self.num_workers = num_workers
         self.seed = seed
@@ -60,7 +62,7 @@ class SemanticKITTITrainer(Trainer):
         self.student.train()
         self.teacher.eval()
         self.student_2d.train()
-        self.teacher_2d.eval()
+        # self.teacher_2d.eval()
         self.dataflow.sampler.set_epoch(self.epoch_num - 1)
 
         self.dataflow.worker_init_fn = lambda worker_id: np.random.seed(
@@ -83,13 +85,18 @@ class SemanticKITTITrainer(Trainer):
 
         self.update_teacher()
 
+        # if logits_student_2d.requires_grad:
+        #     self.optimizer.zero_grad()
+        #     loss_2d.backward()
+        #     self.optimizer2D.step()
+
+        # 3D
         with amp.autocast(enabled=self.amp_enabled):
             outputs_student = self.student(inputs_student)
             outputs_teacher = self.teacher(inputs_teacher)
 
             (logits_student_2d,) = self.student_2d(inputs_2d_student)
             (logits_teacher_2d,) = self.teacher_2d(inputs_2d_teacher)
-
             upsampled_logits_student = nn.functional.interpolate(
                 logits_student_2d,
                 size=targets_2d.shape[-2:],
@@ -161,26 +168,35 @@ class SemanticKITTITrainer(Trainer):
             self.scaler_2d.update()
             self.scheduler.step()
 
+            # self.optimizer2D.zero_grad()
+            # loss_2d.backward()
+            # self.optimizer2D.step()
+
         else:
             invs = feed_dict["student_inverse_map"]
             all_labels = feed_dict["student_targets_mapped"]
             _outputs = []
             _targets = []
+            _inputs = []
             for idx in range(invs.C[:, 0].max() + 1):
                 cur_scene_pts = (inputs_student.C[:, 0] == idx).cpu().numpy()
                 cur_inv = invs.F[invs.C[:, 0] == idx].cpu().numpy()
                 cur_label = (all_labels.C[:, 0] == idx).cpu().numpy()
                 outputs_mapped = outputs_student[cur_scene_pts][cur_inv].argmax(1)
                 targets_mapped = all_labels.F[cur_label]
+                inputs_mapped = inputs_student.F[cur_scene_pts][cur_inv]
                 _outputs.append(outputs_mapped)
                 _targets.append(targets_mapped)
+                _inputs.append(inputs_mapped)
             outputs_student = torch.cat(_outputs, 0)
             targets = torch.cat(_targets, 0)
+            inputs_student = torch.cat(_inputs, 0)
 
         return {
             "outputs": outputs_student,
             "targets": targets,
             "outputs_teacher": outputs_teacher,
+            "input": inputs_student,
             "outputs_2d": upsampled_logits_student,
             "targets_2d": targets_2d,
             "images": inputs_2d_student,
@@ -188,9 +204,10 @@ class SemanticKITTITrainer(Trainer):
 
     def _after_epoch(self) -> None:
         self.student.eval()
+        self.student_2d.eval()
 
     def initialize_teacher(self) -> None:
-        self.alpha = 0.999  # TODO: Move to config
+        self.alpha = 0.99  # TODO: Move to config
         for p in self.teacher.parameters():
             p.detach_()
 

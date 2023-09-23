@@ -3,18 +3,18 @@ import torch.nn as nn
 
 
 class PartialConsistencyLoss(nn.Module):
-    def __init__(self, H, ignore_index=0):
+    def __init__(self, H, ignore_index=0, beta=0.5):
         super().__init__()
         self.ignore_index = ignore_index
         self.supervised_loss = H(ignore_index=ignore_index, reduction="sum")
         self.consistency_loss = nn.KLDivLoss(reduction="sum")
-        self.alpha = 0.5
+        self.beta = 0.4
 
     def forward(self, student_output, teacher_output, student_label):
         loss_s = self.compute_supervised_loss(student_output, student_label)
         mask = student_label == self.ignore_index
         loss_u = self.compute_consistency_loss(student_output, teacher_output, mask=mask)
-        return ((1 - self.alpha) * loss_s + self.alpha * loss_u) / student_output.shape[0]
+        return ((1 - self.beta) * loss_s + self.beta * loss_u) / student_output.shape[0]
         # return loss_s / student_output.shape[0]
 
     def compute_supervised_loss(self, student_output, student_label):
@@ -37,14 +37,9 @@ class PartialConsistencyLoss2D(nn.Module):
     def forward(self, student_output, teacher_output, student_label, teacher_weight):
         loss_s = self.compute_supervised_loss(student_output, student_label)
         mask = student_label == self.ignore_index
-        # Modifity the mask to remove upper and lower part of the image
-        mask[:, 0:40, :] = False
-        mask[:, -40:, :] = False
 
         loss_u = self.compute_consistency_loss(student_output, teacher_output, mask=mask)
-        return (
-            (1 - self.beta) * loss_s + self.beta * teacher_weight * loss_u
-        ) / student_output.shape[-1]
+        return ((1 - self.beta) * loss_s + self.beta * loss_u) / student_output.shape[-1]
         # return loss_s / student_output.shape[-1]
 
     def compute_supervised_loss(self, student_output, student_label):
